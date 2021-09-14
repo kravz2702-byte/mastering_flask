@@ -130,3 +130,7 @@ dmypy.json
 
 #Vs Code
 .vscode
+
+#databases
+migrations
+database.db 
