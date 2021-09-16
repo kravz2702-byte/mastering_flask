@@ -74,6 +74,8 @@ class Comment(db.Model):
 def home():
     return '<h1>Hello world</h1>'
 
+@app.template_filter
+def count_substring(string, sub_string): return string.count(sub_string)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0')
