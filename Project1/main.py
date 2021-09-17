@@ -7,11 +7,28 @@ from config import DevConfig
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 import datetime
+from sqlalchemy import func
+from sqlalchemy.sql import text
+
+
+
+
 
 app = Flask(__name__)
 app.config.from_object(DevConfig)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db, render_as_batch=True)
+
+def sidebar_data():
+    recent = Post.query.order_by(
+        Post.publish_date.desc()
+    ).limit.all()
+    top_tags = db.session.query(
+        Tag, func.count(tags.c.post_id).label('total')
+        ).join(
+            tags
+        ).group_by(Tag).order_by(text('total DESC')).limit(5).all()
+    return recent, top_tags
 
 class User(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
