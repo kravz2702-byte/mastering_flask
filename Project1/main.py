@@ -9,7 +9,7 @@ from flask_migrate import Migrate
 import datetime
 from sqlalchemy import func
 from sqlalchemy.sql import text
-
+from flask import Flask, render_template
 
 
 
@@ -73,7 +73,7 @@ class Tag(db.Model):
     def __init__(self, title):
         self.title = title
 
-    def __repr__(self, title):
+    def __repr__(self):
         return "<Post '{}'>".format(self.title)
 
 class Comment(db.Model):
@@ -88,8 +88,50 @@ class Comment(db.Model):
 
 # Changed to show the git diff command
 @app.route('/')
-def home():
-    return '<h1>Hello world</h1>'
+@app.route('/<int:page>')
+def home(page=1):
+    posts = Post.query.order_by(Post.publish_date.desc()).paginate(page,
+    app.config['POST_PER_PAGE'], False)
+    recent, top_tags = sidebar_data()
+
+    return render_template(
+        'home.html',
+        post=posts,
+        recent=recent,
+        top_tags = top_tags
+    )
+
+@app.route('/post/<int:post_id>')
+def post(post_id):
+    post = Post.query.get_or_404(post_id)
+    
+@app.route('/posts_by_user/<string:username>')
+def posts_by_username(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    posts = user.posts.order_by(Post.publish_date.desc()).all()
+    recent, top_tags = sidebar_data()
+
+    return render_template(
+        'user.html',
+        user=user,
+        posts=posts,
+        recent=recent,
+        top_tags=top_tags
+    )
+
+@app.route('/posts_by_tag/<string:tag_name>')
+def posts_by_tag(tag_name):
+    tag = Tag.query.filter_by(title=tag_name).first_or_404()
+    posts = Post.query.filter_by(tags=tag_name).all()
+    recent, top_tags = sidebar_data()
+
+    return render_template(
+        'tag.html',
+        tag = tag,
+        posts=posts,
+        top_tags=top_tags,
+        recent=recent
+    )
 
 @app.template_filter
 def count_substring(string, sub_string): return string.count(sub_string)
