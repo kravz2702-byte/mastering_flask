@@ -52,7 +52,7 @@
 </div>
 <div class="row">
     <div class="col">
-        {{post.text |truncated(500) | safe}}
+        {{post.text |truncate(500) | safe}}
         <a href="url_for('post', post_id=post.id)">Read More</a>
     </div>
 </div>

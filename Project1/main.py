@@ -22,7 +22,7 @@ migrate = Migrate(app, db, render_as_batch=True)
 def sidebar_data():
     recent = Post.query.order_by(
         Post.publish_date.desc()
-    ).limit.all()
+    ).limit(5).all()
     top_tags = db.session.query(
         Tag, func.count(tags.c.post_id).label('total')
         ).join(
@@ -91,12 +91,12 @@ class Comment(db.Model):
 @app.route('/<int:page>')
 def home(page=1):
     posts = Post.query.order_by(Post.publish_date.desc()).paginate(page,
-    app.config['POST_PER_PAGE'], False)
+    app.config['POSTS_PER_PAGE'], False)
     recent, top_tags = sidebar_data()
 
     return render_template(
         'home.html',
-        post=posts,
+        posts=posts,
         recent=recent,
         top_tags = top_tags
     )
@@ -127,7 +127,7 @@ def posts_by_tag(tag_name):
 
     return render_template(
         'tag.html',
-        tag = tag,
+        tag=tag,
         posts=posts,
         top_tags=top_tags,
         recent=recent
