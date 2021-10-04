@@ -3,7 +3,7 @@
     <ul class="pagination">
         {% if pagination.has_prev %}
         <li class="page-item">
-            <a href="{{ url_for('home', page=paginaton.prev().page) }}" class="page-link" aria-label="Previous" >
+            <a href="{{ url_for('home', page=pagination.prev().page) }}" class="page-link" aria-label="Previous" >
                 <span aria-hidden="true">&laquo;</span>
                 <span class="sr-only">Previous</span>
             </a>

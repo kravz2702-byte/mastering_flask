@@ -1,11 +1,15 @@
 from enum import unique
 from operator import index
 from os import name
-from flask import Flask
+from flask import Flask, flash, render_template, redirect, url_for
+from flask.json import tag
 from sqlalchemy.orm import backref
 from config import DevConfig
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_wtf import FlaskForm as Form
+from wtforms import StringField, TextAreaField
+from wtforms.validators import DataRequired, Length
 import datetime
 from sqlalchemy import func
 from sqlalchemy.sql import text
@@ -32,15 +36,15 @@ def sidebar_data():
 
 class User(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
-    username = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    username = db.Column(db.String(255))
     password = db.Column(db.String(255))
     posts = db.relationship('Post', backref='user', lazy='dynamic')
 
-    def __init__(self, username):
+    def __init__(self, username=""):
         self.username = username
-    
+
     def __repr__(self):
-        return "<User {}>".format(self.username)
+        return '<User {}>'.format(self.username)
 
 
 tags = db.Table('post_tags',
@@ -50,17 +54,22 @@ tags = db.Table('post_tags',
 
 class Post(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
-    title = db.Column(db.String(255), nullable=False)
-    text = db.Column(db.Text)
-    publish_date = db.Column(db.DateTime(), default=datetime.datetime.now)
-    user_id = db.Column(db.Integer(), db.ForeignKey('user.id', name='user_post'))
-    comments = db.relationship('Comment', backref='post', lazy='dynamic')
-    tags = db.relationship('Tag',
-    secondary=tags,
-    backref=db.backref('posts', lazy='dynamic')
+    title = db.Column(db.String(255))
+    text = db.Column(db.Text())
+    publish_date = db.Column(db.DateTime())
+    user_id = db.Column(db.Integer(), db.ForeignKey('user.id'))
+    comments = db.relationship(
+        'Comment',
+        backref='post',
+        lazy='dynamic'
+    )
+    tags = db.relationship(
+        'Tag',
+        secondary=tags,
+        backref=db.backref('posts', lazy='dynamic')
     )
 
-    def __init__(self, title):
+    def __init__(self, title=""):
         self.title = title
 
     def __repr__(self):
@@ -70,7 +79,7 @@ class Tag(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     title = db.Column(db.String(255), unique=True, nullable=False)
 
-    def __init__(self, title):
+    def __init__(self, title=""):
         self.title = title
 
     def __repr__(self):
@@ -85,6 +94,10 @@ class Comment(db.Model):
 
     def __repr__(self):
         return "<Comment '{}'>".format(self.text[:15])
+
+class CommentForm(Form):
+    name = StringField('Name', validators=[DataRequired(), Length(max=255)])
+    text = TextAreaField(u'Comment', validators=[DataRequired()])
 
 # Changed to show the git diff command
 @app.route('/')
@@ -101,9 +114,38 @@ def home(page=1):
         top_tags = top_tags
     )
 
-@app.route('/post/<int:post_id>')
+@app.route('/post/<int:post_id>', methods=['GET', 'POST'])
 def post(post_id):
+    form = CommentForm()
+    if form.validate_on_submit():
+        new_comment = Comment()
+        new_comment.name = form.name.data
+        new_comment.text = form.name.data
+        new_comment.post_id = post_id
+        try:
+            db.session.add(new_comment)
+            db.session.commit
+        except Exception as e:
+            flash('Erroradding your comment: %s' % str(e), 'error')
+            db.session.rollback()
+        else:
+            flash('Comment added', 'info')
+        return redirect(url_for('post', post_id=post_id))
+
     post = Post.query.get_or_404(post_id)
+    tags = post.tags
+    comments = post.comment.order_by(Comment.date.desc()).all()
+    recent, top_tags = sidebar_data()
+
+    return render_template(
+        'post.html',
+        post=post,
+        tags=tags,
+        comments=comments,
+        recent=recent,
+        top_tags=top_tags,
+        form=form
+    )
     
 @app.route('/posts_by_user/<string:username>')
 def posts_by_username(username):
