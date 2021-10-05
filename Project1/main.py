@@ -5,7 +5,7 @@ from flask import Flask, flash, render_template, redirect, url_for
 from flask.json import tag
 from sqlalchemy.orm import backref
 from config import DevConfig
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy, model
 from flask_migrate import Migrate
 from flask_wtf import FlaskForm as Form
 from wtforms import StringField, TextAreaField
@@ -176,8 +176,43 @@ def posts_by_tag(tag_name):
         recent=recent
     )
 
-@app.template_filter
-def count_substring(string, sub_string): return string.count(sub_string)
+from flask.views import View
+
+class GenericListView(View):
+
+    def __init__(self, model, list_template='generic_list.html'):
+        self.model=model
+        self.list_template = list_template
+        self.columns = self.model.__mapper__.columns.keys()
+
+        super(GenericListView, self).__init__()
+
+    def render_template(self, context):
+        return render_template(self.list_template, **context)
+
+    def get_objects(self):
+        return self.model.query.all()
+
+    def dispatch_request(self):
+        context = {
+            'objects' : self.get_objects(),
+            'columns' : self.columns}
+        return self.render_template(context)
+
+app.add_url_rule(
+    '/generic_posts', view_func=GenericListView.as_view(
+        'generic_posts', model=Post)
+)
+
+app.add_url_rule(
+    '/generic_users', view_func=GenericListView.as_view(
+        'generic_users', model=User)
+)
+
+app.add_url_rule(
+    '/generic_comments', view_func=GenericListView.as_view(
+        'generic_comments', model=Comment)
+)
 
 if __name__ == '__main__':
     app.run( debug=True)
