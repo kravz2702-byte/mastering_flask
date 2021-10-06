@@ -1,7 +1,8 @@
 from enum import unique
 from operator import index
 from os import name
-from flask import Flask, flash, render_template, redirect, url_for
+from flask import Flask, Blueprint, flash,\
+     render_template, redirect, url_for, session, g 
 from flask.json import tag
 from sqlalchemy.orm import backref
 from config import DevConfig
@@ -22,6 +23,13 @@ app = Flask(__name__)
 app.config.from_object(DevConfig)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db, render_as_batch=True)
+
+blog_blueprint = Blueprint(
+    'blog',
+    __name__,
+    template_folder='templates/blog',
+    url_prefix="/blog"
+)
 
 def sidebar_data():
     recent = Post.query.order_by(
@@ -99,9 +107,14 @@ class CommentForm(Form):
     name = StringField('Name', validators=[DataRequired(), Length(max=255)])
     text = TextAreaField(u'Comment', validators=[DataRequired()])
 
-# Changed to show the git diff command
+
 @app.route('/')
-@app.route('/<int:page>')
+def index():
+    return redirect(url_for('blog.home'))
+
+# Changed to show the git diff command
+@blog_blueprint.route('/')
+@blog_blueprint.route('/<int:page>')
 def home(page=1):
     posts = Post.query.order_by(Post.publish_date.desc()).paginate(page,
     app.config['POSTS_PER_PAGE'], False)
@@ -114,7 +127,7 @@ def home(page=1):
         top_tags = top_tags
     )
 
-@app.route('/post/<int:post_id>', methods=('GET', 'POST'))
+@blog_blueprint.route('/post/<int:post_id>', methods=('GET', 'POST'))
 def post(post_id):
     form = CommentForm()
     if form.validate_on_submit():
@@ -130,7 +143,7 @@ def post(post_id):
             db.session.rollback()
         else:
             flash('Comment added', 'info')
-        return redirect(url_for('post', post_id=post_id))
+        return redirect(url_for('blog.post', post_id=post_id))
 
     post = Post.query.get_or_404(post_id)
     tags = post.tags
@@ -147,7 +160,7 @@ def post(post_id):
         form=form
     )
     
-@app.route('/posts_by_user/<string:username>')
+@blog_blueprint.route('/posts_by_user/<string:username>')
 def posts_by_user(username):
     user = User.query.filter_by(username=username).first_or_404()
     posts = user.posts.order_by(Post.publish_date.desc()).all()
@@ -162,7 +175,7 @@ def posts_by_user(username):
     )
 
 
-@app.route('/posts_by_tag/<string:tag_name>')
+@blog_blueprint.route('/posts_by_tag/<string:tag_name>')
 def posts_by_tag(tag_name):
     tag = Tag.query.filter_by(title=tag_name).first_or_404()
     posts = tag.posts.order_by(Post.publish_date.desc()).all()
@@ -181,10 +194,10 @@ from flask.views import View
 class GenericListView(View):
 
     def __init__(self, model, list_template='generic_list.html'):
-        self.model=model
+        self.model = model
         self.list_template = list_template
         self.columns = self.model.__mapper__.columns.keys()
-
+        # Call super python3 style
         super(GenericListView, self).__init__()
 
     def render_template(self, context):
@@ -194,15 +207,15 @@ class GenericListView(View):
         return self.model.query.all()
 
     def dispatch_request(self):
-        context = {
-            'objects' : self.get_objects(),
-            'columns' : self.columns}
+        context = {'objects': self.get_objects(),
+                   'columns': self.columns}
         return self.render_template(context)
+
 
 app.add_url_rule(
     '/generic_posts', view_func=GenericListView.as_view(
         'generic_posts', model=Post)
-)
+    )
 
 app.add_url_rule(
     '/generic_users', view_func=GenericListView.as_view(
@@ -214,5 +227,17 @@ app.add_url_rule(
         'generic_comments', model=Comment)
 )
 
+app.register_blueprint(blog_blueprint)
+
+@app.errorhandler(404)
+def page_not_found(error):
+    return render_template('404.html'), 404
+
+
+@app.before_request
+def before_request():
+    session['page_loads'] = session.get('page_loads', 0) + 1
+
+
 if __name__ == '__main__':
-    app.run( debug=True)
+    app.run(debug=True)
