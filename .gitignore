@@ -134,3 +134,6 @@ dmypy.json
 #databases
 migrations
 database.db 
+
+#config
+config.py
