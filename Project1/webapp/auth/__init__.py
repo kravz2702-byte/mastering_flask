@@ -1,5 +1,9 @@
-from flask_login import LoginManager
+from flask_login import LoginManager, AnonymousUserMixin
 from flask_bcrypt import Bcrypt
+
+class BlogAnonymous(AnonymousUserMixin):
+    def __init__(self):
+        self.username = "Guest"
 
 login_manager = LoginManager()
 login_manager.login_view = "auth.login"

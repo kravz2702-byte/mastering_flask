@@ -1,5 +1,6 @@
+from flask_login.mixins import AnonymousUserMixin
 from .. import db
-from . import bcrypt
+from . import bcrypt, AnonymousUserMixin
 
 roles = db.Table(
     'role_users',
@@ -39,6 +40,26 @@ class User(db.Model):
     def check_password(self, password):
         return bcrypt.check_password_hash(self.password, password)
 
+    @property
+    def is_authenticated(self):
+        if isinstance(self, AnonymousUserMixin):
+            return False
+        else:
+            return True
+
+    @property
+    def is_active(self):
+        return True
+
+    @property
+    def is_anonymous(self):
+        if isinstance(self, AnonymousUserMixin):
+            return True
+        else:
+            return False
+
+    def get_id(self):
+        return str(self.id)
 
 class Role(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
