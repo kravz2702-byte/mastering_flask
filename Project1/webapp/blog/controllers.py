@@ -1,7 +1,10 @@
 from sqlalchemy import desc, func
+from flask_login import login_required, current_user
 from flask import render_template, Blueprint, flash, redirect, url_for, current_app
+
+from Project1.webapp import blog
 from .models import db, Post, Tag, Comment, User, tags
-from .forms import CommentForm
+from .forms import CommentForm, PostForm
 
 blog_blueprint = Blueprint(
     'blog',
@@ -99,3 +102,17 @@ def posts_by_user(username):
         recent=recent,
         top_tags=top_tags
     )
+
+@blog_blueprint.route('/new', methods=['GET', 'POST'])
+@login_required
+def new_post():
+    form = PostForm()
+    if form.validate_on_submit():
+        new_post = Post()
+        new_post.title = form.title.data
+        new_post.text = form.text.data
+        db.session.add(new_post)
+        db.session.commit()
+        flash("Post added", category='info')
+        return redirect(url_for('blog.post', post_id=new_post.id))
+    return render_template('new.html', form=form) 
