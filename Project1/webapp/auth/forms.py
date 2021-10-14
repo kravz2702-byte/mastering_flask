@@ -45,3 +45,6 @@ class RegisterForm(Form):
             )
             return False
         return True
+
+class OpenIDForm(Form):
+    openid = StringField('OpenId URL', [DataRequired(), URL()])
