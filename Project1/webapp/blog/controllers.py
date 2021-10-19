@@ -1,10 +1,12 @@
+import datetime
 from sqlalchemy import desc, func
+from flask import render_template, Blueprint, flash, redirect, url_for, current_app, abort
 from flask_login import login_required, current_user
-from flask import render_template, Blueprint, flash, redirect, url_for, current_app
+from .models import db, Post, Tag, Comment, tags
 
-from Project1.webapp import blog
-from .models import db, Post, Tag, Comment, User, tags
 from .forms import CommentForm, PostForm
+from ..auth.models import User
+#from ..auth import has_role
 
 blog_blueprint = Blueprint(
     'blog',
@@ -37,7 +39,6 @@ def home(page=1):
         recent=recent,
         top_tags=top_tags
     )
-
 
 @blog_blueprint.route('/post/<int:post_id>', methods=('GET', 'POST'))
 def post(post_id):
@@ -110,9 +111,10 @@ def new_post():
     if form.validate_on_submit():
         new_post = Post()
         new_post.title = form.title.data
+        new_post.user_id = current_user.id
         new_post.text = form.text.data
         db.session.add(new_post)
         db.session.commit()
         flash("Post added", category='info')
-        return redirect(url_for('blog.post', post_id=new_post.id))
+        return redirect(url_for('.post', post_id=new_post.id))
     return render_template('new.html', form=form) 
