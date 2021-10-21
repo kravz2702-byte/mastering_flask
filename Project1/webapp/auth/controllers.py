@@ -26,7 +26,7 @@ def login():
         )
 
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form   .username.data).one()
+        user = User.query.filter_by(username=form.username.data).one()
         login_user(user, remember=form.remember.data)
         flash("You have been logged in", category='success')
         return redirect(url_for('main.index'))
