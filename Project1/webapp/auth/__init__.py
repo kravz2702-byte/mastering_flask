@@ -45,6 +45,16 @@ def create_module(app, **kwargs):
     from .controllers import auth_blueprint
     app.register_blueprint(auth_blueprint)
 
+def has_role(name):
+    def real_decorator(f):
+        def wraps(*args, **kwargs):
+            if current_user.has_role(name):
+                return f(*args, **kwargs)
+            else:
+                abort(403)
+        return functools.update_wrapper(wraps, f)
+    return real_decorator
+
 @login_manager.user_loader 
 def load_user(userid):
     from models import User
@@ -66,7 +76,7 @@ def create_or_login(resp):
     login_user(user)
     return redirect(url_for('main.index'))
     
-@oauth_authorized
+@oauth_authorized.connect
 def logged_in(blueprint, token):
     from .models import db, User
     if blueprint.name == 'twitter':

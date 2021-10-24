@@ -1,4 +1,5 @@
 import datetime
+from flask_wtf import form
 from sqlalchemy import desc, func
 from flask import render_template, Blueprint, flash, redirect, url_for, current_app, abort
 from flask_login import login_required, current_user
@@ -6,7 +7,7 @@ from .models import db, Post, Tag, Comment, tags
 
 from .forms import CommentForm, PostForm
 from ..auth.models import User
-#from ..auth import has_role
+from ..auth import has_role
 
 blog_blueprint = Blueprint(
     'blog',
@@ -106,6 +107,7 @@ def posts_by_user(username):
 
 @blog_blueprint.route('/new', methods=['GET', 'POST'])
 @login_required
+@has_role('poster')
 def new_post():
     form = PostForm()
     if form.validate_on_submit():
@@ -118,3 +120,24 @@ def new_post():
         flash("Post added", category='info')
         return redirect(url_for('.post', post_id=new_post.id))
     return render_template('new.html', form=form) 
+
+
+@blog_blueprint.route('/eidt/<int:id>', methods=['GET','POST'])
+@login_required
+@has_role('poster')
+def edit_post(id):
+    post = Post.query.get_or_404(id)
+    #We want admins to be able to edit any post
+    if current_user.id == post.user.id:
+        form = PostForm()
+        if form.validate_on_submit():
+            post.title = form.title.data
+            post.text = form.title.data
+            post.publish_date = datetime.datetime.now()
+            db.session.add(post)
+            db.session.commit()
+            return redirect(url_for('.post', post_id=post.id))
+        form.title.data = post.title
+        form.text.data = post.text
+        return render_template('edit.html', form=form, post=post)
+    abort(403)
