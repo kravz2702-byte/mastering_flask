@@ -62,7 +62,6 @@ def register():
         new_user.set_password(form.password.data)
         db.session.add(new_user)
         db.session.commit()
-        db.session.commit()
         flash('Your user has been created', category='success')
         return redirect(url_for('.login'))
     openid_errors = oid.fetch_error()
