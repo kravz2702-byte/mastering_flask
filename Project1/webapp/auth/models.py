@@ -13,7 +13,7 @@ class User(db.Model):
     username = db.Column(db.String(255), nullable=False, index=True, unique=True)
     password = db.Column(db.String(255))
     posts = db.relationship('Post', backref='user', lazy='dynamic')
-    
+
     roles = db.relationship(
         'Role',
         secondary=roles,

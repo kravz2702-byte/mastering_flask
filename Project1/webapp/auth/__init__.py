@@ -23,6 +23,7 @@ login_manager.login_view = "auth.login"
 login_manager.session_protection = "strong"
 login_manager.login_message = "Please login to access this page"
 login_manager.login_message_category = "info"
+login_manager.anonymous_user = BlogAnonymous
 
 
 def create_module(app, **kwargs):

@@ -1,5 +1,4 @@
 import datetime
-from flask_wtf import form
 from sqlalchemy import desc, func
 from flask import render_template, Blueprint, flash, redirect, url_for, current_app, abort
 from flask_login import login_required, current_user
@@ -40,6 +39,44 @@ def home(page=1):
         recent=recent,
         top_tags=top_tags
     )
+
+
+@blog_blueprint.route('/new', methods=['GET', 'POST'])
+@login_required
+@has_role('poster')
+def new_post():
+    form = PostForm()
+    if form.validate_on_submit():
+        new_post = Post()
+        new_post.title = form.title.data
+        new_post.user_id = current_user.id
+        new_post.text = form.text.data
+        db.session.add(new_post)
+        db.session.commit()
+        flash('Post added', 'info')
+        return redirect(url_for('.post', post_id=new_post.id))
+    return render_template('new.html', form=form)
+
+
+@blog_blueprint.route('/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_post(id):
+    post = Post.query.get_or_404(id)
+    # We want that the current user can edit is own posts
+    if current_user.id == post.user.id:
+        form = PostForm()
+        if form.validate_on_submit():
+            post.title = form.title.data
+            post.text = form.text.data
+            post.publish_date = datetime.datetime.now()
+            db.session.merge(post)
+            db.session.commit()
+            return redirect(url_for('.post', post_id=post.id))
+        form.title.data = post.title
+        form.text.data = post.text
+        return render_template('edit.html', form=form, post=post)
+    abort(403)
+
 
 @blog_blueprint.route('/post/<int:post_id>', methods=('GET', 'POST'))
 def post(post_id):
@@ -104,40 +141,3 @@ def posts_by_user(username):
         recent=recent,
         top_tags=top_tags
     )
-
-@blog_blueprint.route('/new', methods=['GET', 'POST'])
-@login_required
-@has_role('poster')
-def new_post():
-    form = PostForm()
-    if form.validate_on_submit():
-        new_post = Post()
-        new_post.title = form.title.data
-        new_post.user_id = current_user.id
-        new_post.text = form.text.data
-        db.session.add(new_post)
-        db.session.commit()
-        flash("Post added", category='info')
-        return redirect(url_for('.post', post_id=new_post.id))
-    return render_template('new.html', form=form) 
-
-
-@blog_blueprint.route('/eidt/<int:id>', methods=['GET','POST'])
-@login_required
-@has_role('poster')
-def edit_post(id):
-    post = Post.query.get_or_404(id)
-    #We want admins to be able to edit any post
-    if current_user.id == post.user.id:
-        form = PostForm()
-        if form.validate_on_submit():
-            post.title = form.title.data
-            post.text = form.title.data
-            post.publish_date = datetime.datetime.now()
-            db.session.add(post)
-            db.session.commit()
-            return redirect(url_for('.post', post_id=post.id))
-        form.title.data = post.title
-        form.text.data = post.text
-        return render_template('edit.html', form=form, post=post)
-    abort(403)

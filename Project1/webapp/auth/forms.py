@@ -33,7 +33,7 @@ class RegisterForm(Form):
     confirm = PasswordField('Confirm Password', [DataRequired(), EqualTo('password')])
     recaptcha = RecaptchaField()
     def validate(self):
-        check_validate = super(RegisterForm, self).__init__()
+        check_validate = super(RegisterForm, self).validate()
         #if our validators do not pass
         if not check_validate:
             return False
