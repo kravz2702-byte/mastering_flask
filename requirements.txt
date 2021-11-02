@@ -1,0 +1,10 @@
+blinker
+Flask
+Flask-Login
+Flask-SQLAlchemy
+Flask-Migrate
+Flask-WTF
+flask-bcrypt
+flask-openid
+flask-dance
+Faker
